@@ -23,6 +23,10 @@ module.exports = (io, socket, onlineUsers, channels) => {
       socket.emit('get online users', onlineUsers);
     })
   
+    socket.on('get channels', () => {
+      socket.emit('get channels', Object.keys(channels));
+    })
+  
     socket.on('new channel', (newChannel) => {
       //Save the new channel to our channels object. The array will hold the messages.
       channels[newChannel] = [];
