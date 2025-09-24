@@ -1,5 +1,6 @@
 //index.js
-$(document).ready(()=>{
+$(document).ready(() => {
+
     const socket = io.connect();
   
     //Keep track of the current user
@@ -31,6 +32,16 @@ $(document).ready(()=>{
           message : message,
         });
         $('#chat-input').val("");
+      }
+    });
+  
+    $('#new-channel-btn').click( () => {
+      let newChannel = $('#new-channel-input').val();
+  
+      if(newChannel.length > 0){
+        // Emit the new channel to the server
+        socket.emit('new channel', newChannel);
+        $('#new-channel-input').val("");
       }
     });
   
