@@ -66,16 +66,28 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
     player.currentAnswer = answerIndex;
     player.answerTime = currentTime;
 
-    console.log(`${player.name} answered: ${answerIndex}`);
+    console.log(`${player.name} answered: ${answerIndex} at time ${currentTime}`);
+
+    // Immediately notify all players that this player answered
+    io.emit('player-answered', {
+      playerName: player.name,
+      hasAnswered: true
+    });
 
     // Check if all players have answered
     const allAnswered = Array.from(gameState.players.values())
       .every(p => p.currentAnswer !== null);
 
     if (allAnswered) {
+      // Clear the auto-process timer since everyone answered
+      if (gameState.questionTimer) {
+        clearTimeout(gameState.questionTimer);
+        gameState.questionTimer = null;
+      }
+      
       setTimeout(() => {
         processAnswers();
-      }, 500); // Small delay for dramatic effect
+      }, 1000); // Small delay for dramatic effect
     }
   });
 
@@ -105,23 +117,38 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       totalQuestions: gameState.totalQuestions,
       question: question.question,
       options: question.options,
-      timeLimit: 10000 // 10 seconds
+      timeLimit: 15000 // Increased to 15 seconds for more time
     });
 
-    // Auto-process answers after time limit
-    setTimeout(() => {
+    // Store the timer reference so we can clear it if needed
+    gameState.questionTimer = setTimeout(() => {
+      console.log('Time limit reached, processing answers...');
       processAnswers();
-    }, 10000);
+    }, 15000);
   }
 
   function processAnswers() {
+    // Clear the timer to prevent double processing
+    if (gameState.questionTimer) {
+      clearTimeout(gameState.questionTimer);
+      gameState.questionTimer = null;
+    }
+
     const question = questions[gameState.currentQuestion];
     const correctAnswer = question.correct;
+    
+    console.log(`Processing answers for question ${gameState.currentQuestion + 1}`);
+    console.log(`Correct answer index: ${correctAnswer}`);
+    
+    // Debug: Log all player answers
+    gameState.players.forEach(player => {
+      console.log(`${player.name}: answered ${player.currentAnswer}, time: ${player.answerTime}`);
+    });
     
     // Calculate scores based on speed and correctness
     const correctAnswers = [];
     gameState.players.forEach(player => {
-      if (player.currentAnswer === correctAnswer) {
+      if (player.currentAnswer === correctAnswer && player.answerTime !== null) {
         correctAnswers.push({
           player: player,
           responseTime: player.answerTime - gameState.questionStartTime
@@ -142,6 +169,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
         default: points = 40; break; // Everyone else
       }
       answer.player.score += points;
+      console.log(`${answer.player.name} gets ${points} points (position ${index + 1})`);
     });
 
     // Prepare results
@@ -161,6 +189,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
         .sort((a, b) => b.score - a.score)
     };
 
+    console.log('Sending results:', results);
     io.emit('question-results', results);
 
     gameState.currentQuestion++;

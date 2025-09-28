@@ -27,12 +27,17 @@ $(document).ready(() => {
   $(document).on('click', '.answer-btn', (e) => {
     if (gamePhase !== 'active') return;
     
-    const answerIndex = parseInt($(e.target).data('answer'));
+    const answerIndex = parseInt($(e.target).closest('.answer-btn').data('answer'));
+    console.log(`Submitting answer: ${answerIndex}`);
+    
     socket.emit('submit-answer', answerIndex);
     
     // Disable all answer buttons after answering
     $('.answer-btn').prop('disabled', true).addClass('answered');
-    $(e.target).addClass('selected');
+    $(e.target).closest('.answer-btn').addClass('selected');
+    
+    // Show confirmation
+    $('.question-header').append('<p class="answer-submitted">✅ Answer submitted!</p>');
   });
 
   // Socket event listeners
@@ -63,11 +68,13 @@ $(document).ready(() => {
   });
 
   socket.on('question-broadcast', (data) => {
+    console.log('Received question:', data);
     displayQuestion(data);
     startQuestionTimer(data.timeLimit);
   });
 
   socket.on('question-results', (data) => {
+    console.log('Received results:', data);
     displayResults(data);
     clearTimeout(questionTimer);
   });
