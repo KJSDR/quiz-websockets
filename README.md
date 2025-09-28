@@ -3,8 +3,7 @@
 A real-time multiplayer trivia game built with WebSockets for competitive knowledge testing.
 
 ## Team Members
-- [Your Name Here]
-- [Add team member names as needed]
+- Me
 
 ## App Description
 
