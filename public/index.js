@@ -1,121 +1,227 @@
-//index.js
+//public/index.js
 $(document).ready(() => {
 
-    const socket = io.connect();
-    let currentUser;
-    socket.emit('get online users');
-    socket.emit('get channels');
-    //Each user should be in the general channel by default.
-    socket.emit('user changed channel', "General");
-  
-    //Users can change the channel by clicking on its name.
-    $(document).on('click', '.channel', (e)=>{
-      let newChannel = e.target.textContent;
-      socket.emit('user changed channel', newChannel);
-    });
-  
-    $('#create-user-btn').click((e)=>{
-      e.preventDefault();
-      if($('#username-input').val().length > 0){
-        socket.emit('new user', $('#username-input').val());
-        // Save the current user when created
-        currentUser = $('#username-input').val();
-        $('.username-form').remove();
-        // Have the main page visible
-        $('.main-container').css('display', 'flex');
-      }
-    });
-  
-    $('#send-chat-btn').click((e) => {
-      e.preventDefault();
-      // Get the client's channel
-      let channel = $('.channel-current').text();
-      let message = $('#chat-input').val();
-      if(message.length > 0) {
-        socket.emit('new message', {
-          sender : currentUser,
-          message : message,
-          //Send the channel over to the server
-          channel : channel
-        });
-        $('#chat-input').val("");
-      }
-    });
-  
-    $('#new-channel-btn').click( () => {
-      let newChannel = $('#new-channel-input').val();
-  
-      if(newChannel.length > 0){
-        // Emit the new channel to the server
-        socket.emit('new channel', newChannel);
-        $('#new-channel-input').val("");
-      }
-    });
-  
-    //socket listeners
-    socket.on('new user', (username) => {
-      console.log(`${username} has joined the chat`);
-      // Add the new user to the online users div
-      $('.users-online').append(`<div class="user-online">${username}</div>`);
-    })
-  
-    socket.on('get online users', (onlineUsers) => {
-      //You may have not have seen this for loop before. It's syntax is for(key in obj)
-      //Our usernames are keys in the object of onlineUsers.
-      for(username in onlineUsers){
-        $('.users-online').append(`<div class="user-online">${username}</div>`);
-      }
-    })
-  
-    socket.on('get channels', (channelList) => {
-      channelList.forEach((channel) => {
-        if(channel !== 'General') { // General is already in the HTML
-          $('.channels').append(`<div class="channel">${channel}</div>`);
-        }
-      });
-    });
-  
-    //Refresh the online user list
-    socket.on('user has left', (onlineUsers) => {
-      $('.users-online').empty();
-      for(username in onlineUsers){
-        $('.users-online').append(`<div class="user-online">${username}</div>`);
-      }
-    });
-  
-    // Add the new channel to the channels list (Fires for all clients)
-    socket.on('new channel', (newChannel) => {
-      $('.channels').append(`<div class="channel">${newChannel}</div>`);
-    });
-  
-    // Make the channel joined the current channel. Then load the messages.
-    socket.on('user changed channel', (data) => {
-      $('.channel-current').addClass('channel');
-      $('.channel-current').removeClass('channel-current');
-      $(`.channel:contains('${data.channel}')`).addClass('channel-current');
-      $('.channel-current').removeClass('channel');
-      $('.message').remove();
-      data.messages.forEach((message) => {
-        $('.message-container').append(`
-          <div class="message">
-            <p class="message-user">${message.sender}: </p>
-            <p class="message-text">${message.message}</p>
+  const socket = io.connect();
+  let currentPlayer;
+  let gamePhase = 'lobby';
+  let questionTimer;
+
+  // Join game button click
+  $('#create-player-btn').click((e) => {
+    e.preventDefault();
+    if ($('#username-input').val().length > 0) {
+      currentPlayer = $('#username-input').val();
+      socket.emit('player-join', currentPlayer);
+      $('.username-form').remove();
+      $('.main-container').css('display', 'flex');
+    }
+  });
+
+  // Start game button click
+  $('#start-game-btn').click((e) => {
+    e.preventDefault();
+    socket.emit('start-game');
+  });
+
+  // Answer button clicks
+  $(document).on('click', '.answer-btn', (e) => {
+    if (gamePhase !== 'active') return;
+    
+    const answerIndex = parseInt($(e.target).data('answer'));
+    socket.emit('submit-answer', answerIndex);
+    
+    // Disable all answer buttons after answering
+    $('.answer-btn').prop('disabled', true).addClass('answered');
+    $(e.target).addClass('selected');
+  });
+
+  // Socket event listeners
+  socket.on('player-joined', (data) => {
+    console.log(`${data.playerName} joined the game`);
+    updatePlayersList(data.players);
+  });
+
+  socket.on('player-left', (data) => {
+    console.log(`${data.playerName} left the game`);
+    updatePlayersList(data.players);
+  });
+
+  socket.on('game-state-update', (data) => {
+    gamePhase = data.phase;
+    updateGameDisplay(data);
+    updatePlayersList(data.players);
+  });
+
+  socket.on('game-started', (data) => {
+    gamePhase = 'active';
+    $('.game-status').html(`
+      <h2>🎮 ${data.message}</h2>
+      <p>Total Questions: ${data.totalQuestions}</p>
+    `);
+    $('.start-game-container').hide();
+    $('#start-game-btn').hide();
+  });
+
+  socket.on('question-broadcast', (data) => {
+    displayQuestion(data);
+    startQuestionTimer(data.timeLimit);
+  });
+
+  socket.on('question-results', (data) => {
+    displayResults(data);
+    clearTimeout(questionTimer);
+  });
+
+  socket.on('game-complete', (data) => {
+    gamePhase = 'complete';
+    displayGameComplete(data);
+  });
+
+  socket.on('game-reset', (data) => {
+    gamePhase = 'lobby';
+    $('.game-status').html('<h2>🏆 Quiz Battle Lobby</h2><p>Waiting for players...</p>');
+    $('.question-container').empty();
+    $('.results-container').empty();
+    $('.start-game-container').show();
+    $('#start-game-btn').show();
+    updatePlayersList(data.players);
+  });
+
+  socket.on('leaderboard-update', (leaderboard) => {
+    updateLeaderboard(leaderboard);
+  });
+
+  // Helper functions
+  function updatePlayersList(players) {
+    $('.players-online').empty();
+    if (players && players.length > 0) {
+      players.forEach(player => {
+        $('.players-online').append(`
+          <div class="player-online">
+            <span class="player-name">${player.name}</span>
+            <span class="player-score">${player.score} pts</span>
           </div>
         `);
       });
-    });
-  
-    socket.on('new message', (data) => {
-      //Only append the message if the user is currently in that channel
-      let currentChannel = $('.channel-current').text();
-      if(currentChannel == data.channel) {
-        $('.message-container').append(`
-          <div class="message">
-            <p class="message-user">${data.sender}: </p>
-            <p class="message-text">${data.message}</p>
+    }
+    
+    // Show/hide start button based on player count
+    if (players.length >= 2 && gamePhase === 'lobby') {
+      $('#start-game-btn').show();
+    } else if (gamePhase === 'lobby') {
+      $('#start-game-btn').hide();
+    }
+  }
+
+  function updateGameDisplay(data) {
+    if (data.phase === 'lobby') {
+      $('.game-status').html('<h2>🏆 Quiz Battle Lobby</h2><p>Waiting for players...</p>');
+    } else if (data.phase === 'active') {
+      $('.game-status').html(`<h2>🎮 Quiz Battle in Progress!</h2><p>Question ${data.currentQuestion + 1} of ${data.totalQuestions}</p>`);
+    }
+  }
+
+  function displayQuestion(data) {
+    $('.question-container').html(`
+      <div class="question-header">
+        <h3>Question ${data.questionNumber} of ${data.totalQuestions}</h3>
+        <div class="timer-bar">
+          <div class="timer-fill" id="timer-fill"></div>
+        </div>
+      </div>
+      <div class="question-text">
+        <h2>${data.question}</h2>
+      </div>
+      <div class="answers-grid">
+        ${data.options.map((option, index) => `
+          <button class="answer-btn" data-answer="${index}">
+            <span class="answer-letter">${String.fromCharCode(65 + index)}</span>
+            <span class="answer-text">${option}</span>
+          </button>
+        `).join('')}
+      </div>
+    `);
+    
+    $('.results-container').empty();
+  }
+
+  function startQuestionTimer(timeLimit) {
+    const timerFill = $('#timer-fill');
+    let timeLeft = timeLimit;
+    
+    const countdown = setInterval(() => {
+      timeLeft -= 100;
+      const percentage = (timeLeft / timeLimit) * 100;
+      timerFill.css('width', percentage + '%');
+      
+      if (timeLeft <= 0) {
+        clearInterval(countdown);
+        $('.answer-btn').prop('disabled', true).addClass('time-up');
+      }
+    }, 100);
+    
+    questionTimer = countdown;
+  }
+
+  function displayResults(data) {
+    const correctOption = String.fromCharCode(65 + data.correctAnswer);
+    
+    $('.results-container').html(`
+      <div class="results-header">
+        <h3>📊 Question ${data.questionNumber} Results</h3>
+        <p>Correct Answer: <strong>${correctOption}. ${data.correctOption}</strong></p>
+      </div>
+      <div class="player-results">
+        ${data.playerResults.map(result => `
+          <div class="player-result ${result.isCorrect ? 'correct' : 'incorrect'}">
+            <span class="result-name">${result.name}</span>
+            <span class="result-answer">${result.answer !== null ? String.fromCharCode(65 + result.answer) : 'No Answer'}</span>
+            <span class="result-points">+${result.points} pts</span>
+            <span class="result-total">${result.totalScore} total</span>
           </div>
-        `);
+        `).join('')}
+      </div>
+    `);
+
+    // Update answer buttons to show correct/incorrect
+    $('.answer-btn').each((index, btn) => {
+      const $btn = $(btn);
+      if (index === data.correctAnswer) {
+        $btn.addClass('correct-answer');
+      } else {
+        $btn.addClass('wrong-answer');
       }
     });
-  
-  })
+
+    updatePlayersList(data.leaderboard);
+  }
+
+  function displayGameComplete(data) {
+    $('.question-container').html(`
+      <div class="game-complete">
+        <h1>🎉 Game Complete! 🎉</h1>
+        <h2>${data.message}</h2>
+        <div class="final-leaderboard">
+          <h3>🏆 Final Leaderboard 🏆</h3>
+          ${data.finalLeaderboard.map((player, index) => `
+            <div class="leaderboard-item ${index === 0 ? 'winner' : ''}">
+              <span class="rank">${index + 1}.</span>
+              <span class="name">${player.name}</span>
+              <span class="score">${player.score} points</span>
+              ${index === 0 ? '<span class="crown">👑</span>' : ''}
+            </div>
+          `).join('')}
+        </div>
+        <p>New game starting in 10 seconds...</p>
+      </div>
+    `);
+    
+    $('.results-container').empty();
+  }
+
+  function updateLeaderboard(leaderboard) {
+    // This can be used for real-time leaderboard updates if needed
+    updatePlayersList(leaderboard);
+  }
+
+});
