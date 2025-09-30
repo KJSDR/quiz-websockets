@@ -127,7 +127,7 @@ const { engine } = require('express-handlebars');
 app.engine('handlebars', engine({ defaultLayout: false }));
 app.set('view engine', 'handlebars');
 //Establish your public folder
-app.use('/public', express.static('public'))
+app.use('/static', express.static('static'))
 
 app.get('/', (req, res) => {
   res.render('index.handlebars');
