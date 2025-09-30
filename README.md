@@ -2,20 +2,16 @@
 
 A real-time multiplayer trivia game built with WebSockets for competitive knowledge testing.
 
-## Team Members
-- Me
-
 ## App Description
 
-Quiz Battle Arena is a fast-paced, real-time multiplayer trivia game where players compete to answer questions correctly and quickly. The game features a speed-based scoring system where the fastest correct answers earn the most points, creating an exciting competitive environment.
+Quiz Battle Arena is fast real-time multiplayer trivia game where players compete to answer questions correctly and quickly. The game features a speed-based scoring system where the fastest correct answers earn the most points.
 
 ### Key Features:
 - **Real-time multiplayer gameplay** for 2+ players
 - **Speed-based scoring system**: First correct answer gets 100 points, second gets 80, third gets 60, others get 40
-- **20 diverse trivia questions** covering general knowledge
+- **20 diverse trivia questions**
 - **Live leaderboards** with instant score updates
 - **Automatic game flow** with lobby, active game, and results phases
-- **Responsive design** that works on desktop and mobile devices
 
 ## Justification for Using WebSockets
 
@@ -30,8 +26,6 @@ WebSockets are essential for this application because:
 4. **Instant Feedback**: Players need immediate confirmation when they submit answers, and results must appear simultaneously for all participants.
 
 5. **Dynamic Player Management**: Players joining and leaving the game need to be reflected instantly across all connected clients.
-
-Without WebSockets, the competitive nature and real-time synchronization that makes this game engaging would be impossible.
 
 ## App Mockup with Event Interactions
 
@@ -139,33 +133,3 @@ CLIENT EVENTS                    SERVER EVENTS
 2. **Open your browser:**
    Navigate to `http://localhost:3000`
 
-3. **Test multiplayer:**
-   - Open multiple browser tabs/windows
-   - Join with different player names
-   - Start a game when you have 2+ players
-   - Compete in real-time trivia!
-
-### Game Rules
-- Minimum 2 players required to start
-- 20 questions per game
-- 15 seconds per question
-- Scoring: 100/80/60/40 points for 1st/2nd/3rd/other correct answers
-- Winner is player with most points after all questions
-
-## Technical Implementation
-
-**Additional Pattern Used: Game State Management**
-- Centralized game state tracking (lobby/active/complete phases)
-- Player session management with persistent scoring
-- Timer coordination across all connected clients
-- Automatic game flow transitions
-
-**WebSocket Events Implemented:**
-- `player-join`, `submit-answer`, `question-broadcast`
-- `question-results`, `game-started`, `game-complete`, `player-left`
-
-**Technologies Used:**
-- Node.js & Express.js
-- Socket.IO for WebSocket communication
-- Express Handlebars for templating
-- Responsive CSS with animations
