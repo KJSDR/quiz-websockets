@@ -1,12 +1,11 @@
-//sockets/quiz.js
 module.exports = (io, socket, onlinePlayers, gameState, questions) => {
 
   socket.on('player-join', (playerName) => {
-    // Save the player
+    // save player
     onlinePlayers[playerName] = socket.id;
     socket["playerName"] = playerName;
     
-    // Initialize player in game state
+    // init player in game 
     gameState.players.set(socket.id, {
       id: socket.id,
       name: playerName,
@@ -17,7 +16,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
 
     console.log(`🎮 ${playerName} joined the quiz battle! 🎮`);
     
-    // Send current game state to new player
+    // send game state to new user
     socket.emit('game-state-update', {
       phase: gameState.phase,
       currentQuestion: gameState.currentQuestion,
@@ -25,7 +24,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       players: Array.from(gameState.players.values())
     });
 
-    // Notify all players of new player
+    // notify all of new plater
     io.emit("player-joined", {
       playerName: playerName,
       players: Array.from(gameState.players.values())
@@ -37,7 +36,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       gameState.phase = 'active';
       gameState.currentQuestion = 0;
       
-      // Reset all player scores
+      // reset score
       gameState.players.forEach(player => {
         player.score = 0;
         player.currentAnswer = null;
@@ -49,7 +48,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
         totalQuestions: gameState.totalQuestions
       });
 
-      // Start first question after a short delay
+      // starts next questions after delay
       setTimeout(() => {
         sendQuestion();
       }, 2000);
@@ -60,7 +59,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
     if (gameState.phase !== 'active') return;
     
     const player = gameState.players.get(socket.id);
-    if (!player || player.currentAnswer !== null) return; // Already answered
+    if (!player || player.currentAnswer !== null) return;
 
     const currentTime = Date.now();
     player.currentAnswer = answerIndex;
@@ -68,18 +67,18 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
 
     console.log(`${player.name} answered: ${answerIndex} at time ${currentTime}`);
 
-    // Immediately notify all players that this player answered
+    // notify all that player answered reight away
     io.emit('player-answered', {
       playerName: player.name,
       hasAnswered: true
     });
 
-    // Check if all players have answered
+    // check if all answer
     const allAnswered = Array.from(gameState.players.values())
       .every(p => p.currentAnswer !== null);
 
     if (allAnswered) {
-      // Clear the auto-process timer since everyone answered
+      // clear timer once all answer
       if (gameState.questionTimer) {
         clearTimeout(gameState.questionTimer);
         gameState.questionTimer = null;
@@ -87,7 +86,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       
       setTimeout(() => {
         processAnswers();
-      }, 1000); // Small delay for dramatic effect
+      }, 1000); // small delay in between
     }
   });
 
@@ -106,7 +105,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
     const question = questions[gameState.currentQuestion];
     gameState.questionStartTime = Date.now();
 
-    // Reset player answers for this question
+    // reset answers for quesition
     gameState.players.forEach(player => {
       player.currentAnswer = null;
       player.answerTime = null;
@@ -117,10 +116,10 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       totalQuestions: gameState.totalQuestions,
       question: question.question,
       options: question.options,
-      timeLimit: 15000 // Increased to 15 seconds for more time
+      timeLimit: 15000
     });
 
-    // Store the timer reference so we can clear it if needed
+    // store timer ref to clear if need
     gameState.questionTimer = setTimeout(() => {
       console.log('Time limit reached, processing answers...');
       processAnswers();
@@ -128,7 +127,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
   }
 
   function processAnswers() {
-    // Clear the timer to prevent double processing
+    // clear timer so no double processsing 
     if (gameState.questionTimer) {
       clearTimeout(gameState.questionTimer);
       gameState.questionTimer = null;
@@ -140,12 +139,12 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
     console.log(`Processing answers for question ${gameState.currentQuestion + 1}`);
     console.log(`Correct answer index: ${correctAnswer}`);
     
-    // Debug: Log all player answers
+    // debug 4 logging all plyer answers
     gameState.players.forEach(player => {
       console.log(`${player.name}: answered ${player.currentAnswer}, time: ${player.answerTime}`);
     });
     
-    // Calculate scores based on speed and correctness
+    // calc based on if correct
     const correctAnswers = [];
     gameState.players.forEach(player => {
       if (player.currentAnswer === correctAnswer && player.answerTime !== null) {
@@ -156,23 +155,23 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       }
     });
 
-    // Sort by response time (fastest first)
+    // sort by response speed
     correctAnswers.sort((a, b) => a.responseTime - b.responseTime);
 
-    // Assign points based on ranking
+    // points 4 ranking
     correctAnswers.forEach((answer, index) => {
       let points = 0;
       switch(index) {
-        case 0: points = 100; break; // First place
-        case 1: points = 80; break;  // Second place
-        case 2: points = 60; break;  // Third place
-        default: points = 40; break; // Everyone else
+        case 0: points = 100; break; // 1st
+        case 1: points = 80; break;  // 2st
+        case 2: points = 60; break;  // 3st
+        default: points = 40; break; // 4st
       }
       answer.player.score += points;
       console.log(`${answer.player.name} gets ${points} points (position ${index + 1})`);
     });
 
-    // Prepare results
+    // prepare results after end of 20
     const results = {
       questionNumber: gameState.currentQuestion + 1,
       correctAnswer: correctAnswer,
@@ -194,14 +193,14 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
 
     gameState.currentQuestion++;
 
-    // Continue to next question or end game
+    // end game or continue
     setTimeout(() => {
       if (gameState.currentQuestion < gameState.totalQuestions && gameState.currentQuestion < questions.length) {
         sendQuestion();
       } else {
         endGame();
       }
-    }, 4000); // Show results for 4 seconds
+    }, 4000);
   }
 
   function endGame() {
@@ -218,7 +217,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       message: `🎉 ${winner.name} wins with ${winner.score} points! 🎉`
     });
 
-    // Reset game after 10 seconds
+    // rst after 10 secs
     setTimeout(() => {
       gameState.phase = 'lobby';
       gameState.currentQuestion = 0;
@@ -235,7 +234,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
     }, 10000);
   }
 
-  // Handle player disconnect
+  // player disconent
   socket.on('disconnect', () => {
     if (socket.playerName) {
       delete onlinePlayers[socket.playerName];

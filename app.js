@@ -122,11 +122,11 @@ io.on("connection", (socket) => {
   require('./sockets/quiz.js')(io, socket, onlinePlayers, gameState, questions);
 })
 
-//Express View Engine for Handlebars
+//express eingine for handlbars
 const { engine } = require('express-handlebars');
 app.engine('handlebars', engine({ defaultLayout: false }));
 app.set('view engine', 'handlebars');
-//Establish your public folder
+//public folder
 app.use('/static', express.static('static'))
 
 app.get('/', (req, res) => {

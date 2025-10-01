@@ -1,4 +1,3 @@
-//public/index.js
 $(document).ready(() => {
 
   const socket = io.connect();
@@ -6,7 +5,7 @@ $(document).ready(() => {
   let gamePhase = 'lobby';
   let questionTimer;
 
-  // Join game button click
+  // join game button
   $('#create-player-btn').click((e) => {
     e.preventDefault();
     if ($('#username-input').val().length > 0) {
@@ -17,13 +16,13 @@ $(document).ready(() => {
     }
   });
 
-  // Start game button click
+  // start game button
   $('#start-game-btn').click((e) => {
     e.preventDefault();
     socket.emit('start-game');
   });
 
-  // Answer button clicks
+  // answer button
   $(document).on('click', '.answer-btn', (e) => {
     if (gamePhase !== 'active') return;
     
@@ -32,15 +31,15 @@ $(document).ready(() => {
     
     socket.emit('submit-answer', answerIndex);
     
-    // Disable all answer buttons after answering
+    // disable button in between
     $('.answer-btn').prop('disabled', true).addClass('answered');
     $(e.target).closest('.answer-btn').addClass('selected');
     
-    // Show confirmation
+    // confirm
     $('.question-header').append('<p class="answer-submitted">✅ Answer submitted!</p>');
   });
 
-  // Socket event listeners
+  // socket event listen
   socket.on('player-joined', (data) => {
     console.log(`${data.playerName} joined the game`);
     updatePlayersList(data.players);
@@ -98,7 +97,7 @@ $(document).ready(() => {
     updateLeaderboard(leaderboard);
   });
 
-  // Helper functions
+  // helper
   function updatePlayersList(players) {
     $('.players-online').empty();
     if (players && players.length > 0) {
@@ -112,7 +111,7 @@ $(document).ready(() => {
       });
     }
     
-    // Show/hide start button based on player count
+    // button show/hide based on player number
     if (players.length >= 2 && gamePhase === 'lobby') {
       $('#start-game-btn').show();
     } else if (gamePhase === 'lobby') {
@@ -190,7 +189,7 @@ $(document).ready(() => {
       </div>
     `);
 
-    // Update answer buttons to show correct/incorrect
+    // update answer
     $('.answer-btn').each((index, btn) => {
       const $btn = $(btn);
       if (index === data.correctAnswer) {
@@ -227,7 +226,6 @@ $(document).ready(() => {
   }
 
   function updateLeaderboard(leaderboard) {
-    // This can be used for real-time leaderboard updates if needed
     updatePlayersList(leaderboard);
   }
 
