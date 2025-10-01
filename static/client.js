@@ -226,7 +226,7 @@ $(document).ready(() => {
   }
 
   function updateLeaderboard(leaderboard) {
-    updatePlayersList(leaderboard);
+    updatePlayersList(leaderboard); // lazy
   }
 
 });
