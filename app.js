@@ -14,7 +14,7 @@ let gameState = {
   players: new Map()
 };
 
-// Sample questions - you can expand this later
+// quiz quesntions
 const questions = [
   {
     question: "What is the capital of France?",
@@ -27,8 +27,8 @@ const questions = [
     correct: 1
   },
   {
-    question: "What is 2 + 2?",
-    options: ["3", "4", "5", "6"],
+    question: "What is 77 + 33?",
+    options: ["100", "110", "120", "90"],
     correct: 1
   },
   {
