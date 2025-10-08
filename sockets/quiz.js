@@ -14,7 +14,7 @@ module.exports = (io, socket, onlinePlayers, gameState, questions) => {
       answerTime: null
     });
 
-    console.log(`🎮 ${playerName} joined the quiz battle! 🎮`);
+    console.log(` ${playerName} joined the quiz battle! `);
     
     // send game state to new user
     socket.emit('game-state-update', {

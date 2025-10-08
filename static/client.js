@@ -85,7 +85,7 @@ $(document).ready(() => {
 
   socket.on('game-reset', (data) => {
     gamePhase = 'lobby';
-    $('.game-status').html('<h2>🏆 Quiz Battle Lobby</h2><p>Waiting for players...</p>');
+    $('.game-status').html('<h2>Quiz Battle Lobby</h2><p>Waiting for players...</p>');
     $('.question-container').empty();
     $('.results-container').empty();
     $('.start-game-container').show();
@@ -121,9 +121,9 @@ $(document).ready(() => {
 
   function updateGameDisplay(data) {
     if (data.phase === 'lobby') {
-      $('.game-status').html('<h2>🏆 Quiz Battle Lobby</h2><p>Waiting for players...</p>');
+      $('.game-status').html('<h2>Quiz Battle Lobby</h2><p>Waiting for players...</p>');
     } else if (data.phase === 'active') {
-      $('.game-status').html(`<h2>🎮 Quiz Battle in Progress!</h2><p>Question ${data.currentQuestion + 1} of ${data.totalQuestions}</p>`);
+      $('.game-status').html(`<h2>Quiz Battle in Progress!</h2><p>Question ${data.currentQuestion + 1} of ${data.totalQuestions}</p>`);
     }
   }
 
